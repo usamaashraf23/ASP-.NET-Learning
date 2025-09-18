@@ -19,7 +19,7 @@ namespace HelloWorld
             Computer c = new Computer()
             {
                 Motherboard = "Sample-Motherboard",
-                CPUCores = 4,
+                CPUCores = 5,
                 HASWifi = true,
                 HASLTE = false,
                 ReleaseDate = DateTime.Now,
