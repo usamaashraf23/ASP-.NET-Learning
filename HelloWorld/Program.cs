@@ -1,21 +1,61 @@
 ﻿using System;
-
+using System.Data;
+using Dapper;
+using HelloWorld.Data;
+using HelloWorld.Models;
+using Microsoft.Data.SqlClient;
 namespace HelloWorld
 {
-    public class Computer
-    {
-        public string Motherboard { get; set; } = "";
-        public int CPUCores { get; set; }
-        public bool HASWifi { get; set; }
-        public bool HASLTE { get; set; }
-        public DateTime ReleaseDate { get; set; }
-        public int Price { get; set; }
-        public string VideoCard { get; set; } = "";
-    }
+    
     internal class Program
     {
         static void Main(string[] args)
         {
+
+            DataContextDapper dapper = new DataContextDapper();
+
+            // string sqlCommand = "SELECT * FROM ";
+            // DateTime rightNow = dbConnection.QuerySingle<DateTime>(sqlCommand);
+
+            // Console.WriteLine(rightNow);
+
+            Computer c = new Computer(){
+                Motherboard = "Gigabyte-X570-Aorus",
+                CPUCores = 16,
+                HASWifi = true,
+                HASLTE = false,
+                ReleaseDate = DateTime.Now.AddYears(-1),
+                Price = 2800,
+                VideoCard = "AMD-RadeonRX6800"
+            };
+            string sqlInsert = @"INSERT INTO TutorialAppSchema.Computer(
+                Motherboard,
+                CPUCores,
+                HASWifi,
+                HASLTE,
+                ReleaseDate,
+                Price,
+                VideoCard
+            ) 
+            VALUES('" + c.Motherboard
+            + "','" + c.CPUCores
+            + "','" + c.HASWifi
+            + "','" + c.HASLTE
+            + "','" + c.ReleaseDate
+            + "','" + c.Price
+            + "','" + c.VideoCard
+            +"')";
+
+            bool result = dapper.ExecuteSql(sqlInsert);
+
+            string sqlSelect = @" SELECT * FROM TutorialAppSchema.Computer";
+            IEnumerable<Computer> computers = dapper.LoadData<Computer>(sqlSelect);
+
+            foreach (Computer computer in computers)
+            {
+                Console.WriteLine(computer.CPUCores);
+            }
+
             Computer c = new Computer()
             {
                 Motherboard = "Sample-Motherboard",
@@ -26,13 +66,6 @@ namespace HelloWorld
                 Price = 1000,
                 VideoCard = "Sample-Video"
             };
-
-            Console.WriteLine(c.Motherboard);
-
-
-
-
-
 
 
 
