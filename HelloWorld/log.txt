@@ -1,0 +1,31 @@
+
+INSERT INTO TutorialAppSchema.Computer(
+                Motherboard,
+                CPUCores,
+                HASWifi,
+                HASLTE,
+                ReleaseDate,
+                Price,
+                VideoCard
+            ) 
+            VALUES('Gigabyte-X570-Aorus','16','True','False','9/22/2024 9:42:02 AM','2800','AMD-RadeonRX6800')
+INSERT INTO TutorialAppSchema.Computer(
+                Motherboard,
+                CPUCores,
+                HASWifi,
+                HASLTE,
+                ReleaseDate,
+                Price,
+                VideoCard
+            ) 
+            VALUES('Gigabyte-X570-Aorus','16','True','False','9/22/2024 9:42:36 AM','2800','AMD-RadeonRX6800')
+INSERT INTO TutorialAppSchema.Computer(
+                Motherboard,
+                CPUCores,
+                HASWifi,
+                HASLTE,
+                ReleaseDate,
+                Price,
+                VideoCard
+            ) 
+            VALUES('Gigabyte-X570-Aorus','16','True','False','9/22/2024 9:47:41 AM','2800','AMD-RadeonRX6800')

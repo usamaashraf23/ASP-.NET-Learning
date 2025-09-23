@@ -4,6 +4,7 @@ using Dapper;
 using HelloWorld.Data;
 using HelloWorld.Models;
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Configuration;
 namespace HelloWorld
 {
     
@@ -12,14 +13,20 @@ namespace HelloWorld
         static void Main(string[] args)
         {
 
-            DataContextDapper dapper = new DataContextDapper();
+            IConfiguration config = new ConfigurationBuilder()
+            .AddJsonFile("appsettings.json")
+            .Build();
+
+            DataContextDapper dapper = new DataContextDapper(config);
+            DataContextEF ef = new DataContextEF(config);
 
             // string sqlCommand = "SELECT * FROM ";
             // DateTime rightNow = dbConnection.QuerySingle<DateTime>(sqlCommand);
 
             // Console.WriteLine(rightNow);
 
-            Computer c = new Computer(){
+            Computer c = new Computer()
+            {
                 Motherboard = "Gigabyte-X570-Aorus",
                 CPUCores = 16,
                 HASWifi = true,
@@ -28,6 +35,8 @@ namespace HelloWorld
                 Price = 2800,
                 VideoCard = "AMD-RadeonRX6800"
             };
+            // ef.Add(c);
+            // ef.SaveChanges();
             string sqlInsert = @"INSERT INTO TutorialAppSchema.Computer(
                 Motherboard,
                 CPUCores,
@@ -44,28 +53,44 @@ namespace HelloWorld
             + "','" + c.ReleaseDate
             + "','" + c.Price
             + "','" + c.VideoCard
-            +"')";
+            + "')";
 
-            bool result = dapper.ExecuteSql(sqlInsert);
 
-            string sqlSelect = @" SELECT * FROM TutorialAppSchema.Computer";
-            IEnumerable<Computer> computers = dapper.LoadData<Computer>(sqlSelect);
 
-            foreach (Computer computer in computers)
-            {
-                Console.WriteLine(computer.CPUCores);
-            }
+            // File Write and Read
+            File.WriteAllText("log.txt", "\n"+ sqlInsert);
+            using StreamWriter openFile = new("log.txt", append: true);
+            openFile.Write("\n" + sqlInsert);
 
-            Computer c = new Computer()
-            {
-                Motherboard = "Sample-Motherboard",
-                CPUCores = 5,
-                HASWifi = true,
-                HASLTE = false,
-                ReleaseDate = DateTime.Now,
-                Price = 1000,
-                VideoCard = "Sample-Video"
-            };
+            openFile.Close();
+
+            Console.WriteLine(File.ReadAllText("log.txt"));
+
+            // bool result = dapper.ExecuteSql(sqlInsert);
+
+            // string sqlSelect = @" SELECT * FROM TutorialAppSchema.Computer";
+            // IEnumerable<Computer> computers = dapper.LoadData<Computer>(sqlSelect);
+            // IEnumerable<Computer> computers = ef.Computer?.ToList<Computer>();
+
+            // if (computers != null)
+            // {
+            //    foreach (Computer computer in computers)
+            //     {
+            //         Console.WriteLine(computer.ComputerId +" "+ computer.Motherboard +" "+ computer.CPUCores +" "+computer.HASWifi +" "+ computer.HASLTE +" "+ computer.ReleaseDate +" "+ computer.Price +" "+ computer.VideoCard);
+            //     } 
+            // }
+
+
+            // Computer c = new Computer()
+            // {
+            //     Motherboard = "Sample-Motherboard",
+            //     CPUCores = 5,
+            //     HASWifi = true,
+            //     HASLTE = false,
+            //     ReleaseDate = DateTime.Now,
+            //     Price = 1000,
+            //     VideoCard = "Sample-Video"
+            // };
 
 
 
