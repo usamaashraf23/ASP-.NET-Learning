@@ -78,3 +78,5 @@ C:\Users\usamaashraf\Desktop\dotnet-course-code\HelloWorld\bin\Debug\net9.0\Micr
 C:\Users\usamaashraf\Desktop\dotnet-course-code\HelloWorld\bin\Debug\net9.0\Microsoft.Extensions.FileProviders.Physical.dll
 C:\Users\usamaashraf\Desktop\dotnet-course-code\HelloWorld\bin\Debug\net9.0\Microsoft.Extensions.FileSystemGlobbing.dll
 C:\Users\usamaashraf\Desktop\dotnet-course-code\HelloWorld\bin\Debug\net9.0\appsettings.json
+C:\Users\usamaashraf\Desktop\dotnet-course-code\HelloWorld\bin\Debug\net9.0\Computer.json
+C:\Users\usamaashraf\Desktop\dotnet-course-code\HelloWorld\bin\Debug\net9.0\Newtonsoft.Json.dll

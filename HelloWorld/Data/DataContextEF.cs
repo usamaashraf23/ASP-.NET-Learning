@@ -8,7 +8,7 @@ namespace HelloWorld.Data
     public class DataContextEF : DbContext
     {
 
-        private string _connectionString = "";
+        private string? _connectionString = "";
 
         public DataContextEF(IConfiguration config)
         {

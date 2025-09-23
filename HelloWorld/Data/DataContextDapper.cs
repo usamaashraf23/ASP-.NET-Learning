@@ -7,7 +7,7 @@ namespace HelloWorld.Data
 {
     public class DataContextDapper
     {
-        private string _connectionString = "";
+        private string? _connectionString = "";
 
         public DataContextDapper(IConfiguration config)
         {
@@ -27,10 +27,10 @@ namespace HelloWorld.Data
             return dbConnection.QuerySingle<T>(sql);
         }
 
-        public bool ExecuteSql(string sql)
+        public void ExecuteSql(string sql)
         {
             IDbConnection dbConnection = new SqlConnection(_connectionString);
-            return (dbConnection.Execute(sql) > 0);
+            dbConnection.Execute(sql);
         }
     }
 }
