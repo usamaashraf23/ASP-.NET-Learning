@@ -106,4 +106,16 @@ public class UserController : ControllerBase
 
         throw new Exception("Unable to Delete User");
     }
+
+    [HttpGet("GetUsersSalaryInfo")]
+
+    public IEnumerable<UserSalaryInfoDTO> GetUsersSalaryInfo()
+    {
+        string sql = @"SELECT * FROM TutorialAppSchema.UserSalary 
+                        AS US INNER JOIN TutorialAppSchema.Users AS U
+                        ON US.UserId = U.UserId ;";
+
+        IEnumerable<UserSalaryInfoDTO> usersSalary = _dapper.LoadData<UserSalaryInfoDTO>(sql);
+        return usersSalary; 
+    }
 }
