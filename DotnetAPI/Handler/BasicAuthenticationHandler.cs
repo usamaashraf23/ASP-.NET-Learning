@@ -1,6 +1,7 @@
 ﻿using Azure.Core;
 using DotnetAPI.Data1;
 using DotnetAPI.DTO;
+using DotnetAPI.Helper;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Configuration.UserSecrets;
 using Microsoft.Extensions.Options;
@@ -11,7 +12,7 @@ using System.Text.Encodings.Web;
 
 namespace DotnetAPI.Handler
 {
-    public class BasicAuthenticationHandler
+    public class BasicAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>
     {
         private readonly DataContextDapper _dapper;
         private readonly AuthHelper _authHelper;
