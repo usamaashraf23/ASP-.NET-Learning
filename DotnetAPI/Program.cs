@@ -1,4 +1,4 @@
-using DotnetAPI.Data1;
+﻿using DotnetAPI.Data1;
 using DotnetAPI.Handler;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -15,30 +15,53 @@ builder.Services.AddEndpointsApiExplorer();
 //builder.Services.AddSwaggerGen();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Demo API", Version = "v1" });
-    c.AddSecurityDefinition("basic", new OpenApiSecurityScheme
+    c.SwaggerDoc("v1", new() { Title = "My API", Version = "v1" });
+
+    // ✅ Basic Authentication
+    c.AddSecurityDefinition("Basic", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
     {
-        Name = "Authorization",
-        Type = SecuritySchemeType.Http,
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
         Scheme = "basic",
-        In = ParameterLocation.Header,
-        Description = "Basic Authorization header."
+        Description = "Basic Authentication using username and password."
     });
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+
+    // ✅ API Key Authentication
+    c.AddSecurityDefinition("ApiKey", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    {
+        Description = "API Key needed to access the endpoints. Use the header 'X-API-KEY: {your_api_key}'",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Name = "X-API-KEY",
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey
+    });
+
+    // ✅ Add both schemes to security requirements
+    c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
     {
         {
-            new OpenApiSecurityScheme
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
             {
-                Reference = new OpenApiReference
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
                 {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "basic"
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "Basic"
+                }
+            },
+            new string[] {}
+        },
+        {
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "ApiKey"
                 }
             },
             new string[] {}
         }
     });
 });
+
 
 builder.Services.AddCors((options) =>
 {
@@ -80,9 +103,40 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         options.TokenValidationParameters = tokenValidationParameters;
     });
 
-builder.Services.AddAuthentication("BasicAuthentication")
-    .AddScheme<AuthenticationSchemeOptions, BasicAuthenticationHandler>("BasicAuthentication", null);
+//builder.Services.AddAuthentication("BasicAuthentication")
+//    .AddScheme<AuthenticationSchemeOptions, BasicAuthenticationHandler2>("BasicAuthentication", null);
 
+//builder.Services.AddAuthentication("ApiKeyAuth")
+//    .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>("ApiKeyAuth", null);
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = "MultiAuth";
+    options.DefaultChallengeScheme = "MultiAuth";
+})
+.AddPolicyScheme("MultiAuth", "Authorize using API Key or Basic", options =>
+{
+    options.ForwardDefaultSelector = context =>
+    {
+        string authHeader = context.Request.Headers["Authorization"];
+
+        if (!string.IsNullOrEmpty(authHeader))
+        {
+            if (authHeader.StartsWith("Basic ", StringComparison.OrdinalIgnoreCase))
+                return "Basic";
+
+            if (authHeader.StartsWith("ApiKey ", StringComparison.OrdinalIgnoreCase))
+                return "ApiKey";
+        }
+
+        // If no Authorization header, maybe use X-API-KEY header
+        if (context.Request.Headers.ContainsKey("X-API-KEY"))
+            return "ApiKey";
+
+        return "Basic"; // default
+    };
+})
+.AddScheme<AuthenticationSchemeOptions, BasicAuthenticationHandler2>("Basic", null)
+.AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>("ApiKey", null);
 builder.Services.AddAuthorization();
 
 
@@ -93,6 +147,8 @@ if (app.Environment.IsDevelopment())
     app.UseCors("DevCors");
     app.UseSwagger();
     app.UseSwaggerUI();
+    app.UseHsts();
+    app.UseHttpsRedirection();
 }
 else
 {
@@ -117,6 +173,8 @@ else
 // {
 //    app.UseHttpsRedirection(); 
 // }
+
+app.UseHttpsRedirection();
 
 app.UseAuthentication();
 

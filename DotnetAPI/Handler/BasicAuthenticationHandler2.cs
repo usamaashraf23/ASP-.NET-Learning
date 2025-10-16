@@ -1,10 +1,10 @@
-﻿using Azure.Core;
-using DotnetAPI.Data1;
+﻿using DotnetAPI.Data1;
 using DotnetAPI.DTO;
 using DotnetAPI.Helper;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.Extensions.Configuration.UserSecrets;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
+using Microsoft.Identity.Client;
 using System.Net.Http.Headers;
 using System.Security.Claims;
 using System.Text;
@@ -12,12 +12,11 @@ using System.Text.Encodings.Web;
 
 namespace DotnetAPI.Handler
 {
-    public class BasicAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>
+    public class BasicAuthenticationHandler2 : AuthenticationHandler<AuthenticationSchemeOptions>
     {
         private readonly DataContextDapper _dapper;
         private readonly AuthHelper _authHelper;
-
-        public BasicAuthenticationHandler(
+        public BasicAuthenticationHandler2(
             IOptionsMonitor<AuthenticationSchemeOptions> options,
             ILoggerFactory logger,
             UrlEncoder encoder,
@@ -30,60 +29,65 @@ namespace DotnetAPI.Handler
 
         protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
         {
-            // check Authorization header
             if (!Request.Headers.ContainsKey("Authorization"))
                 return AuthenticateResult.Fail("Missing Authorization Header");
 
             try
             {
-                var authHeader = AuthenticationHeaderValue.Parse(Request.Headers["Authorization"]);
-                var credentialBytes = Convert.FromBase64String(authHeader.Parameter);
-                var credentials = Encoding.UTF8.GetString(credentialBytes).Split(':', 2);
+                var authHeaders = AuthenticationHeaderValue.Parse(Request.Headers["Authorization"]);
+                var credentialsByte = Convert.FromBase64String(authHeaders.Parameter);
+                var credentials = Encoding.UTF8.GetString(credentialsByte).Split(":", 2);
                 var email = credentials[0];
                 var password = credentials[1];
 
-                // ✅ Fetch stored hash and salt from DB
+
                 string sql = $@"SELECT [PasswordHashed] AS PasswordHash,
-                                   [PasswordSalt]
-                            FROM TutorialAppSchema.Auth
-                            WHERE Email = '{email}'";
+                                [PasswordSalt] FROM TutorialAppSchema.Auth
+                                Where Email = '{email}'";
 
                 string sqlUserId = $@"SELECT UserId FROM TutorialAppSchema.Users
                                     Where Email = '{email}'";
 
                 int userId = _dapper.LoadDataSingle<int>(sqlUserId);
+
                 var userLogin = _dapper.LoadDataSingle<UserForLoginConfirmationDTO>(sql);
 
-                if (userLogin == null)
-                    return AuthenticateResult.Fail("Invalid Email");
-
-                // ✅ Verify password
                 byte[] passwordHash = _authHelper.GetPasswordHash(password, userLogin.PasswordSalt);
 
                 if (passwordHash.Length != userLogin.PasswordHash.Length)
-                    return AuthenticateResult.Fail("Invalid Password");
-
-                for (int i = 0; i < passwordHash.Length; i++)
                 {
-                    if (passwordHash[i] != userLogin.PasswordHash[i])
-                        return AuthenticateResult.Fail("Invalid Password");
+                    return AuthenticateResult.Fail("Password Length is incorrect");
                 }
 
-                // ✅ Create Claims
-                var claims = new[] {
-                new Claim(ClaimTypes.NameIdentifier, email),
-                new Claim(ClaimTypes.Email, email),
-                new Claim("userId",userId.ToString())
-            };
-                var identity = new ClaimsIdentity(claims, Scheme.Name);
-                var principal = new ClaimsPrincipal(identity);
-                var ticket = new AuthenticationTicket(principal, Scheme.Name);
+                for(int i = 0; i < passwordHash.Length; i++)
+                {
+                    if (passwordHash[i] != userLogin.PasswordHash[i])
+                    {
+                        return AuthenticateResult.Fail("Password is incorrect");
+                    }
+                }
 
-                return AuthenticateResult.Success(ticket);
+                if(userLogin == null)
+                {
+                    return AuthenticateResult.Fail("Email is incorrect");
+                }
+
+                var claim = new[]
+                {
+                    new Claim(ClaimTypes.NameIdentifier,email),
+                    new Claim(ClaimTypes.Email, email),
+                    new Claim("userId",userId.ToString())
+                };
+
+                var identity = new ClaimsIdentity(claim, Scheme.Name);
+                var principal = new ClaimsPrincipal(identity);
+                var token = new AuthenticationTicket(principal, Scheme.Name);
+
+                return AuthenticateResult.Success(token);
             }
             catch
             {
-                return AuthenticateResult.Fail("Invalid Authorization Header");
+                return AuthenticateResult.Fail("Invalid Authorization Header"); 
             }
         }
     }

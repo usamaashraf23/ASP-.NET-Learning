@@ -48,13 +48,14 @@ public class PostController:ControllerBase
     [HttpGet("GetMyPosts")]
     public IEnumerable<Post> GetMyPosts()
     {
+        int userId = int.Parse(this.User.FindFirst("userId")?.Value);
         string sql = $@"SELECT [PostId],
                         [UserId],
                         [PostTitle],
                         [PostDescription],
                         [PostCreated],
                         [PostUpdated] FROM TutorialAppSchema.Posts
-                        WHERE UserId = {this.User.FindFirst("userId")?.Value + ""} ";
+                        WHERE UserId = {userId}";
 
         IEnumerable<Post> myPosts = _dapper.LoadData<Post>(sql);
 
@@ -64,7 +65,7 @@ public class PostController:ControllerBase
     [HttpPost("AddPost")]
     public IActionResult AddPost(PostToAddDTO post)
     {
-        int postId = int.Parse(this.User.FindFirst("userId")?.Value);
+        int userId = int.Parse(this.User.FindFirst("userId")?.Value);
         string sql = $@"INSERT INTO TutorialAppSchema.Posts(
                         [UserId],
                         [PostTitle],
@@ -72,7 +73,7 @@ public class PostController:ControllerBase
                         [PostCreated],
                         [PostUpdated]
                         ) VALUES(
-                            {postId}
+                            {userId}
                             ,'{post.PostTitle}'
                             ,'{post.PostDescription}'
                             ,GETDATE(),
