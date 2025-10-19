@@ -3,6 +3,8 @@ using DotnetAPI.Handler;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.OpenApi.Models;
 using System.Text;
 
@@ -93,27 +95,60 @@ TokenValidationParameters tokenValidationParameters = new TokenValidationParamet
 {
     IssuerSigningKey = tokenKey,
     ValidateIssuer = false,
-    ValidateIssuerSigningKey = false,
+    ValidateIssuerSigningKey = true,
     ValidateAudience = false
 };
 
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = tokenValidationParameters;
-    });
+//builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+//    .AddJwtBearer(options =>
+//    {
+//        options.TokenValidationParameters = tokenValidationParameters;
+//    });
 
-//builder.Services.AddAuthentication("BasicAuthentication")
-//    .AddScheme<AuthenticationSchemeOptions, BasicAuthenticationHandler2>("BasicAuthentication", null);
+////builder.Services.AddAuthentication("BasicAuthentication")
+////    .AddScheme<AuthenticationSchemeOptions, BasicAuthenticationHandler2>("BasicAuthentication", null);
 
-//builder.Services.AddAuthentication("ApiKeyAuth")
-//    .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>("ApiKeyAuth", null);
+////builder.Services.AddAuthentication("ApiKeyAuth")
+////    .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>("ApiKeyAuth", null);
+//builder.Services.AddAuthentication(options =>
+//{
+//    options.DefaultAuthenticateScheme = "MultiAuth";
+//    options.DefaultChallengeScheme = "MultiAuth";
+//})
+//.AddPolicyScheme("MultiAuth", "Authorize using API Key or Basic", options =>
+//{
+//    options.ForwardDefaultSelector = context =>
+//    {
+//        string authHeader = context.Request.Headers["Authorization"];
+
+//        if (!string.IsNullOrEmpty(authHeader))
+//        {
+//            if (authHeader.StartsWith("Basic ", StringComparison.OrdinalIgnoreCase))
+//                return "Basic";
+
+//            if (authHeader.StartsWith("ApiKey ", StringComparison.OrdinalIgnoreCase))
+//                return "ApiKey";
+//        }
+
+//        // If no Authorization header, maybe use X-API-KEY header
+//        if (context.Request.Headers.ContainsKey("X-API-KEY"))
+//            return "ApiKey";
+
+//        return "Basic"; // default
+//    };
+//})
+//.AddScheme<AuthenticationSchemeOptions, BasicAuthenticationHandler2>("Basic", null)
+//.AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>("ApiKey", null);
+
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = "MultiAuth";
     options.DefaultChallengeScheme = "MultiAuth";
+    //options.DefaultAuthenticateScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    //options.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme;
 })
-.AddPolicyScheme("MultiAuth", "Authorize using API Key or Basic", options =>
+.AddPolicyScheme("MultiAuth", "Supports JWT, Google, Basic, APIKey", options =>
 {
     options.ForwardDefaultSelector = context =>
     {
@@ -121,22 +156,32 @@ builder.Services.AddAuthentication(options =>
 
         if (!string.IsNullOrEmpty(authHeader))
         {
+            if (authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                return JwtBearerDefaults.AuthenticationScheme;
             if (authHeader.StartsWith("Basic ", StringComparison.OrdinalIgnoreCase))
                 return "Basic";
-
-            if (authHeader.StartsWith("ApiKey ", StringComparison.OrdinalIgnoreCase))
-                return "ApiKey";
         }
 
-        // If no Authorization header, maybe use X-API-KEY header
         if (context.Request.Headers.ContainsKey("X-API-KEY"))
             return "ApiKey";
 
-        return "Basic"; // default
+        return JwtBearerDefaults.AuthenticationScheme; // default fallback
     };
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = tokenValidationParameters;
+})
+.AddCookie()
+.AddGoogle(options =>
+{
+    options.ClientId = builder.Configuration["Authentication:Google:ClientId"];
+    options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
+    options.CallbackPath = "/signin-google";
 })
 .AddScheme<AuthenticationSchemeOptions, BasicAuthenticationHandler2>("Basic", null)
 .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>("ApiKey", null);
+
 builder.Services.AddAuthorization();
 
 

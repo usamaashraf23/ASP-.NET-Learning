@@ -28,7 +28,6 @@ public class AuthController : ControllerBase
     public AuthController(IConfiguration config)
     {
         _dapper = new DataContextDapper(config);
-        _config = config;
         authHelper = new AuthHelper(config);
     }
 
@@ -46,7 +45,7 @@ public class AuthController : ControllerBase
             IEnumerable<string> existingUsers = _dapper.LoadData<string>(userExistsSql);
             if (existingUsers.Count() == 0)
             {
-                byte[] passwordSalt = new byte[128 / 8];
+                byte[] passwordSalt = new byte[16];
                 using (RandomNumberGenerator rng = RandomNumberGenerator.Create())
                 {
                     rng.GetNonZeroBytes(passwordSalt);
@@ -143,6 +142,4 @@ public class AuthController : ControllerBase
             {"token", authHelper.CreateToken(id) }
         });
     }
-
-    
 }

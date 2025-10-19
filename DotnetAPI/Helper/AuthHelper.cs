@@ -37,14 +37,14 @@ namespace DotnetAPI.Helper
 
             SymmetricSecurityKey tokenKey = new SymmetricSecurityKey(
                     Encoding.UTF8.GetBytes(
-                        _config.GetSection("Appsettings:TokenKey").Value
+                        _config.GetSection("AppSettings:TokenKey").Value
                     )
                 );
 
             SigningCredentials credentials = new SigningCredentials(
                     tokenKey,
                     SecurityAlgorithms.HmacSha512Signature
-                );
+             );
 
 
             SecurityTokenDescriptor descriptor = new SecurityTokenDescriptor()
