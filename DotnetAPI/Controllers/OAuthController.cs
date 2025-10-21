@@ -25,6 +25,12 @@ public class OAuthController : ControllerBase
         _config = config;
     }
 
+    [HttpGet("Login")]
+    public IActionResult Login()
+    {
+        return Challenge(new AuthenticationProperties { RedirectUri="/"},"oidc");
+    }
+
     [AllowAnonymous]
     [HttpGet("Login/{provider}")]
     public IActionResult Login(string provider)

@@ -126,20 +126,4 @@ public class AuthController : ControllerBase
             {"token", authHelper.CreateToken(userId)}
         });
     }
-
-    [HttpGet("RefreshToken")]
-    public IActionResult RefreshToken()
-    {
-        string userId = User.FindFirst("userId")?.Value + "";
-
-        string sqlUserId = $@"SELECT UserId FROM TutorialAppSchema.Users
-                                WHERE UserId = {userId}";
-
-        int id = _dapper.LoadDataSingle<int>(sqlUserId);
-
-        return Ok(new Dictionary<string, string>
-        {
-            {"token", authHelper.CreateToken(id) }
-        });
-    }
 }

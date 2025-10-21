@@ -19,7 +19,7 @@ builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new() { Title = "My API", Version = "v1" });
 
-    // ✅ Basic Authentication
+    // Basic Authentication
     c.AddSecurityDefinition("Basic", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
     {
         Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
@@ -27,7 +27,7 @@ builder.Services.AddSwaggerGen(c =>
         Description = "Basic Authentication using username and password."
     });
 
-    // ✅ API Key Authentication
+    // API Key Authentication
     c.AddSecurityDefinition("ApiKey", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
     {
         Description = "API Key needed to access the endpoints. Use the header 'X-API-KEY: {your_api_key}'",
@@ -36,7 +36,7 @@ builder.Services.AddSwaggerGen(c =>
         Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey
     });
 
-    // ✅ Add both schemes to security requirements
+    // Add both schemes to security requirements
     c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
     {
         {
@@ -99,47 +99,6 @@ TokenValidationParameters tokenValidationParameters = new TokenValidationParamet
     ValidateAudience = false
 };
 
-//builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-//    .AddJwtBearer(options =>
-//    {
-//        options.TokenValidationParameters = tokenValidationParameters;
-//    });
-
-////builder.Services.AddAuthentication("BasicAuthentication")
-////    .AddScheme<AuthenticationSchemeOptions, BasicAuthenticationHandler2>("BasicAuthentication", null);
-
-////builder.Services.AddAuthentication("ApiKeyAuth")
-////    .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>("ApiKeyAuth", null);
-//builder.Services.AddAuthentication(options =>
-//{
-//    options.DefaultAuthenticateScheme = "MultiAuth";
-//    options.DefaultChallengeScheme = "MultiAuth";
-//})
-//.AddPolicyScheme("MultiAuth", "Authorize using API Key or Basic", options =>
-//{
-//    options.ForwardDefaultSelector = context =>
-//    {
-//        string authHeader = context.Request.Headers["Authorization"];
-
-//        if (!string.IsNullOrEmpty(authHeader))
-//        {
-//            if (authHeader.StartsWith("Basic ", StringComparison.OrdinalIgnoreCase))
-//                return "Basic";
-
-//            if (authHeader.StartsWith("ApiKey ", StringComparison.OrdinalIgnoreCase))
-//                return "ApiKey";
-//        }
-
-//        // If no Authorization header, maybe use X-API-KEY header
-//        if (context.Request.Headers.ContainsKey("X-API-KEY"))
-//            return "ApiKey";
-
-//        return "Basic"; // default
-//    };
-//})
-//.AddScheme<AuthenticationSchemeOptions, BasicAuthenticationHandler2>("Basic", null)
-//.AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>("ApiKey", null);
-
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = "MultiAuth";
@@ -165,7 +124,7 @@ builder.Services.AddAuthentication(options =>
         if (context.Request.Headers.ContainsKey("X-API-KEY"))
             return "ApiKey";
 
-        return JwtBearerDefaults.AuthenticationScheme; // default fallback
+        return "oidc";
     };
 })
 .AddJwtBearer(options =>
@@ -178,6 +137,21 @@ builder.Services.AddAuthentication(options =>
     options.ClientId = builder.Configuration["Authentication:Google:ClientId"];
     options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
     options.CallbackPath = "/signin-google";
+})
+.AddOpenIdConnect("oidc", options =>
+{
+    options.Authority = "https://accounts.google.com"; // Or your Identity Provider
+    options.ClientId = builder.Configuration["Authentication:Google:ClientId"];
+    options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
+    options.ResponseType = "code"; // ALWAYS "code" for OIDC (NOT "token")
+
+    options.SaveTokens = true;  // ✅ Saves id_token + access_token in cookie
+
+    options.Scope.Add("openid");        // ✅ Mandatory
+    options.Scope.Add("profile");       // optional
+    options.Scope.Add("email");         // optional
+
+    options.CallbackPath = "/signin-oidc"; // NOT same as signin-google
 })
 .AddScheme<AuthenticationSchemeOptions, BasicAuthenticationHandler2>("Basic", null)
 .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>("ApiKey", null);
@@ -201,27 +175,11 @@ else
     app.UseHttpsRedirection();
 }
 
-
-
-
-
-// var app = builder.Build();
-
-// // Configure the HTTP request pipeline.
-// if (app.Environment.IsDevelopment())
-// {
-//     // app.MapOpenApi();
-//     app.UseSwagger();
-//     app.UseSwaggerUI();
-// }
-// else
-// {
-//    app.UseHttpsRedirection(); 
-// }
-
 app.UseHttpsRedirection();
 
 app.UseAuthentication();
+
+app.UseRouting();
 
 app.UseAuthorization();
 
