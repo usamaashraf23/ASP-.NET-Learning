@@ -19,10 +19,13 @@ public class PostController:ControllerBase
         _config = config;
     }
 
-    [HttpGet("GetAllPosts")]
-    public IEnumerable<Post> GetAllPosts()
+    [HttpGet("Posts/{postId}/{userId}/{searchParam}")]
+    public IEnumerable<Post> GetPosts(int postId, int userId, string searchParam)
     {
-        string sql = $@"SELECT * FROM TutorialAppSchema.Posts";
+        string sql = $@"EXEC TutorialAppSchema.spPosts_Get
+                        @PostId = {postId},
+                        @UserId = {userId},
+                        @SearchValue = '{searchParam}'";
 
         IEnumerable<Post> posts = _dapper.LoadData<Post>(sql);
 
