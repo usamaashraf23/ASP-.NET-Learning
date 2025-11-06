@@ -45,41 +45,27 @@ public class AuthController : ControllerBase
             IEnumerable<string> existingUsers = _dapper.LoadData<string>(userExistsSql);
             if (existingUsers.Count() == 0)
             {
-                byte[] passwordSalt = new byte[16];
-                using (RandomNumberGenerator rng = RandomNumberGenerator.Create())
+
+                UserForLoginDTO setPassword = new UserForLoginDTO()
                 {
-                    rng.GetNonZeroBytes(passwordSalt);
-                }
-                //string passwordSaltPlusString = _config.GetSection("AppSettings:PasswordKey").Value + Convert.ToBase64String(passwordSalt);
-                byte[] passwordHash = authHelper.GetPasswordHash(user.Password, passwordSalt);
+                    Email = user.Email,
+                    Password = user.Password
+                };
 
-                string sql = $@"INSERT INTO TutorialAppSchema.Auth(Email, PasswordHashed, PasswordSalt)
-                                VALUES('{user.Email}',@PasswordHashed, @PasswordSalt)";
-
-                List<SqlParameter> sqlParameters = new List<SqlParameter>();
-
-                SqlParameter passwordSaltParameter = new SqlParameter("@PasswordSalt", SqlDbType.VarBinary);
-                passwordSaltParameter.Value = passwordSalt;
-
-                SqlParameter passwordHashParameter = new SqlParameter("@PasswordHashed", SqlDbType.VarBinary);
-                passwordHashParameter.Value = passwordHash;
-
-                sqlParameters.Add(passwordSaltParameter);
-                sqlParameters.Add(passwordHashParameter);
-
-                if (_dapper.ExecuteWithParameters(sql, sqlParameters))
+                if (authHelper.SetPassword(setPassword))
                 {
 
-                    string sqlAdd = $@"INSERT INTO TutorialAppSchema.Users (
-                                      [FirstName]
-                                    , [LastName]
-                                    , [Email]
-                                    , [Gender]
-                                    ) VALUES('{user.FirstName}' 
-                                        , '{user.LastName}' 
-                                        , '{user.Email}'
-                                        , '{user.Gender}' 
-                                    )";
+                    string sqlAdd = $@"EXEC TutorialAppSchema.spUser_Upsert
+                                         @FirstName = '{user.FirstName}', 
+                                         @LastName = '{user.LastName}', 
+                                         @Email = '{user.Email}', 
+                                         @Gender = '{user.Gender}', 
+                                         @Active = 1,
+                                         @Salary = {user.Salary},
+                                         @Department = '{user.Department}',
+                                         @JobTitle = '{user.JobTitle}'";
+
+                    Console.WriteLine(sqlAdd);
                     if (_dapper.Execute(sqlAdd))
                     {
                         return Ok();
@@ -125,5 +111,17 @@ public class AuthController : ControllerBase
         return Ok( new Dictionary<string, string> {
             {"token", authHelper.CreateToken(userId)}
         });
+    }
+
+    [Authorize]
+    [HttpPut("ResetPassword")]
+    public IActionResult ResetPassword(UserForLoginDTO resetPassword)
+    {
+        if (authHelper.SetPassword(resetPassword))
+        {
+            return Ok();
+        }
+
+        throw new Exception("Failed to reset password");
     }
 }
