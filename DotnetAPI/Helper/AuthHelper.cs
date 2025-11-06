@@ -1,4 +1,5 @@
-﻿using DotnetAPI.Data1;
+﻿using Dapper;
+using DotnetAPI.Data1;
 using DotnetAPI.DTO;
 using DotnetAPI.Models;
 using Microsoft.AspNetCore.Cryptography.KeyDerivation;
@@ -85,20 +86,11 @@ namespace DotnetAPI.Helper
                                 @PasswordHash = @PasswordHashParameter, 
                                 @PasswordSalt = @PasswordSaltParameter";
 
-            List<SqlParameter> sqlParameters = new List<SqlParameter>();
+            DynamicParameters sqlParameters = new DynamicParameters();
 
-            SqlParameter emailParameter = new SqlParameter("@EmailParameter", SqlDbType.VarChar);
-            emailParameter.Value = setPassword.Email;
-
-            SqlParameter passwordHashParameter = new SqlParameter("@PasswordHashParameter", SqlDbType.VarBinary);
-            passwordHashParameter.Value = passwordHash;
-
-            SqlParameter passwordSaltParameter = new SqlParameter("@PasswordSaltParameter", SqlDbType.VarBinary);
-            passwordSaltParameter.Value = passwordSalt;
-
-            sqlParameters.Add(emailParameter);
-            sqlParameters.Add(passwordSaltParameter);
-            sqlParameters.Add(passwordHashParameter);
+            sqlParameters.Add("@EmailParameter", setPassword.Email, DbType.String);
+            sqlParameters.Add("@PasswordHash", passwordHash, DbType.Binary);
+            sqlParameters.Add("@PasswordSalt", passwordSalt, DbType.Binary);
 
             return _dapper.ExecuteWithParameters(sql, sqlParameters);
         }

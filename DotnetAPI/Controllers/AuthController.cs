@@ -1,4 +1,5 @@
-﻿using DotnetAPI.Data1;
+﻿using Dapper;
+using DotnetAPI.Data1;
 using DotnetAPI.DTO;
 using DotnetAPI.Helper;
 using DotnetAPI.Models;
@@ -83,11 +84,13 @@ public class AuthController : ControllerBase
     [HttpPost("Login")]
     public IActionResult Login(UserForLoginDTO user)
     {
-        string sql = $@"SELECT [PasswordHashed] AS PasswordHash,
-                            [PasswordSalt] FROM TutorialAppSchema.Auth
-                            WHERE Email = '{user.Email}'";
+        string sql = $@"EXEC TutorialAppSchema.sp_User_Login 
+                            @Email = @EmailParam";
 
-        UserForLoginConfirmationDTO userLogin = _dapper.LoadDataSingle<UserForLoginConfirmationDTO>(sql);
+        DynamicParameters parameters = new DynamicParameters();
+        parameters.Add("@EmailParam", user.Email, DbType.String);
+
+        UserForLoginConfirmationDTO userLogin = _dapper.LoadDataSingleWithParameters<UserForLoginConfirmationDTO>(sql, parameters);
 
         if (userLogin == null)
             return StatusCode(401, "User not found");
@@ -113,7 +116,8 @@ public class AuthController : ControllerBase
         });
     }
 
-    [Authorize]
+    //[Authorize]
+    [AllowAnonymous]
     [HttpPut("ResetPassword")]
     public IActionResult ResetPassword(UserForLoginDTO resetPassword)
     {
