@@ -1,4 +1,5 @@
-﻿using Dapper;
+﻿using AutoMapper;
+using Dapper;
 using DotnetAPI.Data1;
 using DotnetAPI.DTO;
 using DotnetAPI.Helper;
@@ -26,10 +27,17 @@ public class AuthController : ControllerBase
     private readonly DataContextDapper _dapper;
     private readonly IConfiguration _config;
     private readonly AuthHelper authHelper;
+    private readonly ReusableSQL _reusableSQL;
+    private readonly IMapper _mapper;
     public AuthController(IConfiguration config)
     {
         _dapper = new DataContextDapper(config);
         authHelper = new AuthHelper(config);
+        _reusableSQL = new ReusableSQL(config);
+        _mapper = new Mapper(new MapperConfiguration(confg =>
+        {
+            confg.CreateMap<UserForRegistrationDTO, UserComplete>();
+        }));
     }
 
     [AllowAnonymous]
@@ -42,7 +50,6 @@ public class AuthController : ControllerBase
         {
             string userExistsSql = $@"SELECT * FROM TutorialAppSchema.Auth
                           WHERE Email = '{user.Email}'";
-
             IEnumerable<string> existingUsers = _dapper.LoadData<string>(userExistsSql);
             if (existingUsers.Count() == 0)
             {
@@ -55,19 +62,9 @@ public class AuthController : ControllerBase
 
                 if (authHelper.SetPassword(setPassword))
                 {
-
-                    string sqlAdd = $@"EXEC TutorialAppSchema.spUser_Upsert
-                                         @FirstName = '{user.FirstName}', 
-                                         @LastName = '{user.LastName}', 
-                                         @Email = '{user.Email}', 
-                                         @Gender = '{user.Gender}', 
-                                         @Active = 1,
-                                         @Salary = {user.Salary},
-                                         @Department = '{user.Department}',
-                                         @JobTitle = '{user.JobTitle}'";
-
-                    Console.WriteLine(sqlAdd);
-                    if (_dapper.Execute(sqlAdd))
+                    UserComplete userComplete = _mapper.Map<UserComplete>(user);
+                    userComplete.Active = true;
+                    if (_reusableSQL.UpsertUser(userComplete))
                     {
                         return Ok();
                     }
