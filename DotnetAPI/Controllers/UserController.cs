@@ -1,5 +1,7 @@
+using Dapper;
 using DotnetAPI.Data1;
 using DotnetAPI.DTO;
+using DotnetAPI.Helper;
 using DotnetAPI.Models;
 using Microsoft.AspNetCore.Mvc;
 using System.Data;
@@ -11,9 +13,11 @@ namespace DotnetAPI.Controllers;
 public class UserController : ControllerBase
 {
     DataContextDapper _dapper;
+    private readonly ReusableSQL _resuableSQL;
     public UserController(IConfiguration config)
     {
         _dapper = new DataContextDapper(config);
+        _resuableSQL = new ReusableSQL(config);
     }
 
 
@@ -23,16 +27,24 @@ public class UserController : ControllerBase
         string sql = @"EXEC TutorialAppSchema.spUser_Get";
         string parameters = "";
 
+        DynamicParameters sqlParameters = new DynamicParameters();
+
         if(userId != 0)
         {
-            parameters += $", @UserId={userId}";
+            sqlParameters.Add("@UserIdParam", userId, DbType.Int32);
+            parameters += $", @UserId=@UserIdParam";
         }
         if(isActive)
         {
-            parameters += $", @Active={isActive}";
+            sqlParameters.Add("@IsActiveParam", isActive, DbType.Boolean);
+            parameters += $", @Active=@IsActiveParam";
+        }
+        if (parameters.Length > 0)
+        {
+            sql += parameters.Substring(1);
         }
 
-        IEnumerable<UserComplete> users = _dapper.LoadData<UserComplete>(sql);
+        IEnumerable<UserComplete> users = _dapper.LoadDataWithParameters<UserComplete>(sql, sqlParameters);
         return users;
     }
 
@@ -40,18 +52,8 @@ public class UserController : ControllerBase
     [HttpPost("UpsertUser")]
 
     public IActionResult UpsertUser(UserComplete user) {
-        string sql = $@"EXEC TutorialAppSchema.spUser_Upsert
-                         @FirstName = '{user.FirstName}', 
-                         @LastName = '{user.LastName}', 
-                         @Email = '{user.Email}', 
-                         @Gender = '{user.Gender}', 
-                         @Active = {user.Active},
-                         @Salary = {user.Salary},
-                         @Department = '{user.Department}',
-                         @JobTitle = '{user.JobTitle}',
-                         @UserId = {user.UserId}";
-        Console.WriteLine(sql);
-        if (_dapper.Execute(sql))
+
+        if (_resuableSQL.UpsertUser(user))
         {
             return Ok();
         }
@@ -62,8 +64,10 @@ public class UserController : ControllerBase
 
     public IActionResult DeleteUser(int id)
     {
+        DynamicParameters sqlParameter = new DynamicParameters();
+        sqlParameter.Add("@UserIdParam", id, DbType.Int16);
         string sql = $@"EXEC TutorialAppSchema.spUser_Delete
-                        @UserId = {id}";
+                        @UserId = @UserIdParam";
 
         if (_dapper.Execute(sql))
         {
